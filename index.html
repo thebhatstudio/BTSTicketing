@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>BTS ARIRANG Ticket</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTS | ARIRANG LIVE</title>
 
   <style>
     body {
@@ -35,7 +35,7 @@
     }
 
     .status-main {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: bold;
       margin-top: 20px;
     }
@@ -45,12 +45,14 @@
       color: #bbb;
     }
 
-    /* SCANNING LINE */
-    .scanner {
-      position: relative;
-      height: 120px;
-      margin-top: 20px;
+    .scan-frame {
+      width: 100%;
+      max-width: 260px;
+      aspect-ratio: 1 / 1;
+      margin: 20px auto;
+      border: 1px solid rgba(255,255,255,0.1);
       overflow: hidden;
+      box-shadow: 0 0 10px rgba(123,63,228,0.3);
     }
 
     .scan-line {
@@ -58,23 +60,22 @@
       width: 100%;
       height: 2px;
       background: #7B3FE4;
-      animation: scan 2s infinite;
+      animation: scanMove 2s infinite;
     }
 
-    @keyframes scan {
+    @keyframes scanMove {
       0% { top: 0; }
       100% { top: 100%; }
     }
 
     .details {
       display: none;
-      margin-top: 20px;
+      margin-top: 15px;
     }
 
     .invalid {
       color: #ff4d4d;
     }
-
   </style>
 </head>
 
@@ -85,106 +86,239 @@
   <div class="header">BTS | ARIRANG LIVE</div>
   <div class="line"></div>
 
-  <div class="scanner">
+  <div class="scan-frame" id="frame">
     <div class="scan-line"></div>
   </div>
 
-  <div id="mainText" class="status-main">
-    CONFIRMING TICKET...
-  </div>
-
-  <div id="subText" class="status-sub">
-    Please wait while we verify your entry
-  </div>
+  <div id="mainText" class="status-main">CONFIRMING TICKET...</div>
+  <div id="subText" class="status-sub">Please wait while we verify</div>
 
   <div id="details" class="details">
     <div class="line"></div>
-    <p>Gate: 03</p>
-    <p>Row: 50 | Seat: 06</p>
+    <p id="gateText">Gate: --</p>
+    <p id="seatText">Row: -- | Seat: --</p>
     <p id="ticketIdText"></p>
     <div class="line"></div>
-    <p>SMRITHI BHAT</p>
+    <p id="nameText">Guest</p>
   </div>
 
 </div>
 
 <script>
-  // 🔊 Beep sound
-  function beep(freq=600, duration=150) {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
+document.addEventListener("DOMContentLoaded", function () {
 
-    oscillator.connect(gain);
-    gain.connect(ctx.destination);
-
-    oscillator.frequency.value = freq;
-    oscillator.start();
-
-    setTimeout(() => {
-      oscillator.stop();
-      ctx.close();
-    }, duration);
+  function formatTime(date) {
+    return date.toLocaleTimeString("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    });
   }
 
-  // ✅ VALID TICKETS (you can add more)
-  const validTickets = ["ARI-78291", "ARI-78292"];
+  function showImage(frame) {
+    const img = document.createElement("img");
+    img.src = "cover.png";
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";
+    frame.innerHTML = "";
+    frame.appendChild(img);
+  }
 
-  // Get ticket from URL (?id=ARI-78292)
-  const params = new URLSearchParams(window.location.search);
-  const ticketId = params.get("id");
+  function showSecurityAlert() {
+    const overlay = document.createElement("div");
+    overlay.innerText = "SECURITY ALERT";
 
+    Object.assign(overlay.style, {
+      position: "fixed",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      fontSize: "26px",
+      fontWeight: "bold",
+      color: "#ff4d4d",
+      background: "rgba(0,0,0,0.9)",
+      padding: "20px 30px",
+      border: "2px solid #ff4d4d",
+      borderRadius: "8px",
+      zIndex: "9999",
+      letterSpacing: "2px",
+      opacity: "1",
+      transition: "opacity 0.4s ease"
+    });
+
+    document.body.appendChild(overlay);
+
+    // subtle red flash background
+    document.body.style.transition = "background 0.2s";
+    document.body.style.background = "#2a0000";
+
+    setTimeout(() => {
+      document.body.style.background = "#0B0B0F";
+    }, 200);
+
+    // remove overlay
+    setTimeout(() => {
+      overlay.style.opacity = "0";
+    }, 600);
+
+    setTimeout(() => {
+      overlay.remove();
+    }, 1000);
+
+    // vibration (mobile)
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200, 100, 300]);
+    }
+
+    // low beep tone
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.frequency.value = 180; // low = warning feel
+      gain.gain.value = 0.3;
+
+      osc.start();
+
+      setTimeout(() => {
+        osc.stop();
+        ctx.close();
+      }, 300);
+    } catch (e) {}
+  }
+  
   function updateStatus() {
+
+    const main = document.getElementById("mainText");
+    const sub = document.getElementById("subText");
+    const details = document.getElementById("details");
+    const frame = document.getElementById("frame");
+
+    const params = new URLSearchParams(window.location.search);
+    const ticketId = params.get("id") || "UNKNOWN";
+
+    const validTickets = ["ARI-78291","ARI-78292"];
+
     const now = new Date();
 
     const start = new Date("2026-03-21T16:15:00+05:30");
     const eventStart = new Date("2026-03-21T16:30:00+05:30");
     const eventEnd = new Date("2026-03-21T17:30:00+05:30");
 
-    const main = document.getElementById("mainText");
-    const sub = document.getElementById("subText");
-    const details = document.getElementById("details");
+    const usedKey = "used_" + ticketId;
+    const timeKey = "time_" + ticketId;
 
-    // ❌ INVALID ticket
+    const alreadyUsed = localStorage.getItem(usedKey);
+    const checkedTime = localStorage.getItem(timeKey);
+
+    // replace scanner with image always after load
+    showImage(frame);
+
+    // ❌ INVALID
     if (!validTickets.includes(ticketId)) {
       main.innerText = "INVALID TICKET";
       main.classList.add("invalid");
       sub.innerText = "Please check your pass";
-      beep(200, 300);
+      
+      if (details) details.style.display = "none";
+      
+      // shakes, resets the shake effect
+      if (frame) frame.style.animation = "shake 0.3s";
+      
+      setTimeout(() => {
+          if (frame) frame.style.animation = "";
+      }, 400);
+      
+      // vibrates and laets system
+      showSecurityAlert();
+      
       return;
     }
 
     document.getElementById("ticketIdText").innerText = "Ticket ID: " + ticketId;
+    const name = params.get("name") || "BTS ARMY";
+    const row = params.get("row") || "--";
+    const seat = params.get("seat") || "--";
+    const gate = params.get("gate") || "03";
+
+    const seatEl = document.getElementById("seatText");
+    const nameEl = document.getElementById("nameText");
+    const gateEl = document.getElementById("gateText");
+
+    if (seatEl) seatEl.innerText = "Row: " + row + " | Seat: " + seat;
+    if (nameEl) nameEl.innerText = name;
+    if (gateEl) gateEl.innerText = "Gate: " + gate;
 
     // BEFORE EVENT
     if (now < start) {
       main.innerText = "SEE YOU AT THE SHOW";
       sub.innerText = "Entry opens at 4:30 PM IST";
-    }
-
-    // EVENT TIME
-    else if (now >= eventStart && now <= eventEnd) {
-      main.innerText = "ENTRY CONFIRMED";
-      sub.innerText = "Enjoy the show on Netflix";
-      details.style.display = "block";
-      beep(800, 120);
+      return;
     }
 
     // AFTER EVENT
-    else if (now > eventEnd) {
+    if (now > eventEnd) {
       main.innerText = "THANK YOU FOR JOINING";
       sub.innerText = "We hope you enjoyed ARIRANG LIVE";
+      return;
     }
 
-    // BETWEEN 4:15–4:30 buffer
-    else {
+    // BUFFER
+    if (now >= start && now < eventStart) {
       main.innerText = "PREPARING ENTRY";
       sub.innerText = "Please wait for access";
+      return;
+    }
+
+    // DURING EVENT
+    if (now >= eventStart && now <= eventEnd) {
+
+      if (alreadyUsed) {
+        main.innerText = "ALREADY CHECKED IN";
+        main.style.color = "#00ff99";
+
+        if (checkedTime) {
+          sub.innerText = "Checked in at " + checkedTime;
+        } else {
+          sub.innerText = "Enjoy the show 💜";
+        }
+
+        details.style.display = "block";
+        details.innerHTML += "<p style='color:#999'>Entry Locked</p>";
+
+        return;
+      }
+
+      const timeString = formatTime(now);
+
+      localStorage.setItem(usedKey, "true");
+      localStorage.setItem(timeKey, timeString);
+
+      main.innerText = "ENTRY CONFIRMED";
+      sub.innerText = "Checked in at " + timeString;
+      
+      // provides a glow effect
+      if (frame) frame.classList.add("success-pulse");
+
+      // success granted overlay
+      showAccessGranted();
+      
+      if (details) details.style.display = "block";
+
+      return;
     }
   }
 
-  // 2 sec delay for realism
-  setTimeout(updateStatus, 2000);
+  setTimeout(updateStatus, 1500);
+
+});
 </script>
 
 </body>
