@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BTS ARIRANG Ticket</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      background: #0B0B0F;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 380px;
+    }
+
+    .header {
+      font-size: 20px;
+      letter-spacing: 3px;
+      margin-bottom: 10px;
+    }
+
+    .line {
+      height: 2px;
+      background: #7B3FE4;
+      margin: 15px 0;
+    }
+
+    .status-main {
+      font-size: 26px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    .status-sub {
+      font-size: 14px;
+      color: #bbb;
+    }
+
+    /* SCANNING LINE */
+    .scanner {
+      position: relative;
+      height: 120px;
+      margin-top: 20px;
+      overflow: hidden;
+    }
+
+    .scan-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: #7B3FE4;
+      animation: scan 2s infinite;
+    }
+
+    @keyframes scan {
+      0% { top: 0; }
+      100% { top: 100%; }
+    }
+
+    .details {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .invalid {
+      color: #ff4d4d;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="header">BTS | ARIRANG LIVE</div>
+  <div class="line"></div>
+
+  <div class="scanner">
+    <div class="scan-line"></div>
+  </div>
+
+  <div id="mainText" class="status-main">
+    CONFIRMING TICKET...
+  </div>
+
+  <div id="subText" class="status-sub">
+    Please wait while we verify your entry
+  </div>
+
+  <div id="details" class="details">
+    <div class="line"></div>
+    <p>Gate: 03</p>
+    <p>Row: 50 | Seat: 06</p>
+    <p id="ticketIdText"></p>
+    <div class="line"></div>
+    <p>SMRITHI BHAT</p>
+  </div>
+
+</div>
+
+<script>
+  // 🔊 Beep sound
+  function beep(freq=600, duration=150) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.frequency.value = freq;
+    oscillator.start();
+
+    setTimeout(() => {
+      oscillator.stop();
+      ctx.close();
+    }, duration);
+  }
+
+  // ✅ VALID TICKETS (you can add more)
+  const validTickets = ["ARI-78291", "ARI-78292"];
+
+  // Get ticket from URL (?id=ARI-78292)
+  const params = new URLSearchParams(window.location.search);
+  const ticketId = params.get("id");
+
+  function updateStatus() {
+    const now = new Date();
+
+    const start = new Date("2026-03-21T16:15:00+05:30");
+    const eventStart = new Date("2026-03-21T16:30:00+05:30");
+    const eventEnd = new Date("2026-03-21T17:30:00+05:30");
+
+    const main = document.getElementById("mainText");
+    const sub = document.getElementById("subText");
+    const details = document.getElementById("details");
+
+    // ❌ INVALID ticket
+    if (!validTickets.includes(ticketId)) {
+      main.innerText = "INVALID TICKET";
+      main.classList.add("invalid");
+      sub.innerText = "Please check your pass";
+      beep(200, 300);
+      return;
+    }
+
+    document.getElementById("ticketIdText").innerText = "Ticket ID: " + ticketId;
+
+    // BEFORE EVENT
+    if (now < start) {
+      main.innerText = "SEE YOU AT THE SHOW";
+      sub.innerText = "Entry opens at 4:30 PM IST";
+    }
+
+    // EVENT TIME
+    else if (now >= eventStart && now <= eventEnd) {
+      main.innerText = "ENTRY CONFIRMED";
+      sub.innerText = "Enjoy the show on Netflix";
+      details.style.display = "block";
+      beep(800, 120);
+    }
+
+    // AFTER EVENT
+    else if (now > eventEnd) {
+      main.innerText = "THANK YOU FOR JOINING";
+      sub.innerText = "We hope you enjoyed ARIRANG LIVE";
+    }
+
+    // BETWEEN 4:15–4:30 buffer
+    else {
+      main.innerText = "PREPARING ENTRY";
+      sub.innerText = "Please wait for access";
+    }
+  }
+
+  // 2 sec delay for realism
+  setTimeout(updateStatus, 2000);
+</script>
+
+</body>
+</html>
