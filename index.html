@@ -42,8 +42,9 @@
     }
 
     .status-sub {
-      font-size: 14px;
+      font-size: 16px;
       color: #bbb;
+      margin-top: 8px;
     }
 
     .scan-frame {
@@ -74,6 +75,11 @@
       color: #ff4d4d;
     }
 
+    @keyframes scanOnce {
+      0% { top: 0; }
+      100% { top: 100%; }
+    }
+
     @keyframes shake {
       0%,100% { transform: translateX(0); }
       25% { transform: translateX(-5px); }
@@ -90,9 +96,9 @@
       animation: successPulse 0.8s ease-out;
       border-color: #00ff99 !important;
     }
-
   </style>
 </head>
+
 <body>
 
 <div class="container">
@@ -121,74 +127,46 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-  // Format current time for display
   function formatTime(date) {
-    return date.toLocaleTimeString("en-IN", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true
-    });
+    return date.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
   }
 
-  // Animate scan line: top -> bottom, then green fade, then show image
-  function animateScanLine(successCallback) {
-    const frame = document.getElementById("frame");
-    const line = document.getElementById("scanLine");
-
-    // Reset line
-    line.style.top = "0px";
-    line.style.opacity = "1";
-    line.style.background = "#7B3FE4";
-
-    let pos = 0;
-    const step = 2; // pixels per frame
-    const interval = setInterval(() => {
-      pos += step;
-      line.style.top = pos + "px";
-      if (pos >= frame.clientHeight) {
-        clearInterval(interval);
-
-        // Turn green and fade
-        line.style.background = "#00ff99";
-        line.style.transition = "opacity 0.5s";
-        line.style.opacity = "0";
-
-        setTimeout(() => {
-          // Show cover image
-          const img = document.createElement("img");
-          img.src = "cover.png";
-          img.style.width = "100%";
-          img.style.height = "100%";
-          img.style.objectFit = "cover";
-          frame.innerHTML = "";
-          frame.appendChild(img);
-
-          if (successCallback) successCallback();
-        }, 500);
-      }
-    }, 10); // every 10ms
+  function showImage(frame) {
+    const img = document.createElement("img");
+    img.src = "cover.png";
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";
+    frame.innerHTML = "";
+    frame.appendChild(img);
   }
 
-  // Security alert for invalid tickets
+  function animateScan(successCallback) {
+    const scanLine = document.getElementById("scanLine");
+    scanLine.style.top = "0";
+    scanLine.style.background = "#7B3FE4";
+    scanLine.style.animation = "scanOnce 1.5s linear forwards";
+    scanLine.addEventListener("animationend", () => {
+      if (successCallback) successCallback(scanLine);
+    }, { once: true });
+  }
+
+  function highlightSuccess(scanLine, callback) {
+    scanLine.style.transition = "background 0.5s, opacity 0.5s";
+    scanLine.style.background = "#00ff99";
+    scanLine.style.opacity = "0";
+    setTimeout(() => { if(callback) callback(); }, 600);
+  }
+
   function showSecurityAlert() {
     const overlay = document.createElement("div");
     overlay.innerText = "SECURITY ALERT";
     Object.assign(overlay.style, {
-      position: "fixed",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      fontSize: "26px",
-      fontWeight: "bold",
-      color: "#ff4d4d",
-      background: "rgba(0,0,0,0.9)",
-      padding: "20px 30px",
-      border: "2px solid #ff4d4d",
-      borderRadius: "8px",
-      zIndex: "9999",
-      letterSpacing: "2px",
-      opacity: "1",
-      transition: "opacity 0.4s ease"
+      position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+      fontSize: "26px", fontWeight: "bold", color: "#ff4d4d",
+      background: "rgba(0,0,0,0.9)", padding: "20px 30px",
+      border: "2px solid #ff4d4d", borderRadius: "8px", zIndex: "9999",
+      letterSpacing: "2px", opacity: "1", transition: "opacity 0.4s ease"
     });
     document.body.appendChild(overlay);
 
@@ -198,11 +176,11 @@ document.addEventListener("DOMContentLoaded", function () {
     setTimeout(() => overlay.style.opacity = "0", 1000);
     setTimeout(() => overlay.remove(), 1400);
 
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
+    if(navigator.vibrate) navigator.vibrate([200,100,200,100,300]);
 
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
+      if(!AudioCtx) return;
       const ctx = new AudioCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -215,25 +193,15 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch(e){}
   }
 
-  // Access granted overlay
   function showAccessGranted() {
     const overlay = document.createElement("div");
     overlay.innerText = "ACCESS GRANTED";
     Object.assign(overlay.style, {
-      position: "fixed",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      fontSize: "26px",
-      fontWeight: "bold",
-      color: "#00ff99",
-      background: "rgba(0,0,0,0.85)",
-      padding: "20px 30px",
-      border: "2px solid #00ff99",
-      borderRadius: "8px",
-      zIndex: "9999",
-      opacity: "1",
-      transition: "opacity 0.5s ease"
+      position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+      fontSize: "26px", fontWeight: "bold", color: "#00ff99",
+      background: "rgba(0,0,0,0.85)", padding: "20px 30px",
+      border: "2px solid #00ff99", borderRadius: "8px",
+      zIndex: "9999", opacity: "1", transition: "opacity 0.5s ease"
     });
     document.body.appendChild(overlay);
     setTimeout(() => overlay.style.opacity = "0", 700);
@@ -255,15 +223,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const eventStart = new Date("2026-03-21T16:30:00+05:30");
     const eventEnd = new Date("2026-03-21T17:30:00+05:30");
 
-    const usedKey = "used_" + ticketId;
     const checkedTime = localStorage.getItem("time_" + ticketId);
 
-    // INVALID ticket
-    if (!validTickets.includes(ticketId)) {
+    if(!validTickets.includes(ticketId)) {
       main.innerText = "INVALID TICKET";
       main.classList.add("invalid");
       sub.innerText = "Please check your pass";
-      if (details) details.style.display = "none";
+      if(details) details.style.display = "none";
       frame.style.animation = "shake 0.3s";
       setTimeout(() => frame.style.animation = "", 600);
       showSecurityAlert();
@@ -275,62 +241,60 @@ document.addEventListener("DOMContentLoaded", function () {
     const seat = params.get("seat") || "--";
     const gate = params.get("gate") || "03";
 
-    document.getElementById("ticketIdText").innerText = "Ticket ID: " + ticketId;
     document.getElementById("seatText").innerText = "Row: " + row + " | Seat: " + seat;
     document.getElementById("nameText").innerText = name;
     document.getElementById("gateText").innerText = "Gate: " + gate;
+    document.getElementById("ticketIdText").innerText = "Ticket ID: " + ticketId;
 
-    // BEFORE EVENT
-    if (now < start) {
+    if(now < start) {
       main.innerText = "SEE YOU AT THE SHOW";
       sub.innerText = "Entry opens at 4:30 PM IST";
       return;
     }
 
-    // AFTER EVENT
-    if (now > eventEnd) {
+    if(now > eventEnd) {
       main.innerText = "THANK YOU FOR JOINING\n" + name.toUpperCase();
       sub.innerText = "We hope you enjoyed ARIRANG LIVE";
       return;
     }
 
-    // BUFFER
-    if (now >= start && now < eventStart) {
+    if(now >= start && now < eventStart) {
       main.innerText = "PREPARING ENTRY";
       sub.innerText = "Please wait for access";
       return;
     }
 
     // DURING EVENT
-    if (now >= eventStart && now <= eventEnd) {
-      if (localStorage.getItem(usedKey)) {
+    if(now >= eventStart && now <= eventEnd) {
+      if(localStorage.getItem("used_" + ticketId)) {
         main.innerText = "ALREADY CHECKED IN";
         main.style.color = "#00ff99";
         sub.innerText = checkedTime ? "Checked in at " + checkedTime : "Enjoy the show 💜";
         details.style.display = "block";
-        if (!details.innerHTML.includes("Entry Locked")) {
+        if(!details.innerHTML.includes("Entry Locked")) {
           details.innerHTML += "<p style='color:#999'>Entry Locked</p>";
         }
         return;
       }
 
-      // Animate scan line → green → fade → image → success
-      animateScanLine(() => {
-        const timeString = formatTime(now);
-        localStorage.setItem(usedKey, "true");
-        localStorage.setItem("time_" + ticketId, timeString);
-
-        main.innerText = "ENTRY CONFIRMED";
-        sub.innerText = "Checked in at " + timeString;
-        frame.classList.add("success-pulse");
-        showAccessGranted();
-        details.style.display = "block";
+      // Animate scan line → green → fade → show image → confirm entry
+      animateScan(scanLine => {
+        highlightSuccess(scanLine, () => {
+          showImage(frame);
+          const timeString = formatTime(now);
+          localStorage.setItem("used_" + ticketId, "true");
+          localStorage.setItem("time_" + ticketId, timeString);
+          main.innerText = "ENTRY CONFIRMED";
+          sub.innerText = "Checked in at " + timeString;
+          frame.classList.add("success-pulse");
+          showAccessGranted();
+          details.style.display = "block";
+        });
       });
     }
   }
 
   setTimeout(updateStatus, 500);
-
 });
 </script>
 
