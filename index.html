@@ -1,129 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BTS | ARIRANG LIVE</title>
-
-  <style>
-    body {
-      margin: 0;
-      background: #0B0B0F;
-      color: white;
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      text-align: center;
-    }
-
-    .container {
-      width: 90%;
-      max-width: 380px;
-    }
-
-    .header {
-      font-size: 20px;
-      letter-spacing: 3px;
-      margin-bottom: 10px;
-    }
-
-    .line {
-      height: 2px;
-      background: #7B3FE4;
-      margin: 15px 0;
-    }
-
-    .status-main {
-      font-size: 24px;
-      font-weight: bold;
-      margin-top: 20px;
-      white-space: pre-line;
-    }
-
-    .status-sub {
-      font-size: 16px;
-      color: #bbb;
-      margin-top: 8px;
-    }
-
-    .scan-frame {
-      width: 100%;
-      max-width: 260px;
-      aspect-ratio: 1 / 1;
-      margin: 20px auto;
-      border: 1px solid rgba(255,255,255,0.1);
-      overflow: hidden;
-      position: relative;
-      box-shadow: 0 0 10px rgba(123,63,228,0.3);
-    }
-
-    .scan-line {
-      position: absolute;
-      width: 100%;
-      height: 2px;
-      background: #7B3FE4;
-      top: 0;
-    }
-
-    .details {
-      display: none;
-      margin-top: 15px;
-    }
-
-    .invalid {
-      color: #ff4d4d;
-    }
-
-    @keyframes scanOnce {
-      0% { top: 0; }
-      100% { top: 100%; }
-    }
-
-    @keyframes shake {
-      0%,100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
-    }
-
-    @keyframes successPulse {
-      0% { box-shadow: 0 0 0 rgba(0,255,153,0); }
-      50% { box-shadow: 0 0 30px rgba(0,255,153,0.9); }
-      100% { box-shadow: 0 0 0 rgba(0,255,153,0); }
-    }
-
-    .success-pulse {
-      animation: successPulse 0.8s ease-out;
-      border-color: #00ff99 !important;
-    }
-  </style>
-</head>
-
-<body>
-
-<div class="container">
-
-  <div class="header">BTS | ARIRANG LIVE</div>
-  <div class="line"></div>
-
-  <div class="scan-frame" id="frame">
-    <div class="scan-line" id="scanLine"></div>
-  </div>
-
-  <div id="mainText" class="status-main">CONFIRMING TICKET...</div>
-  <div id="subText" class="status-sub">Please wait while we verify</div>
-
-  <div id="details" class="details">
-    <div class="line"></div>
-    <p id="gateText">Gate: --</p>
-    <p id="seatText">Row: -- | Seat: --</p>
-    <p id="ticketIdText"></p>
-    <div class="line"></div>
-    <p id="nameText">Guest</p>
-  </div>
-
-</div>
-
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -141,21 +15,76 @@ document.addEventListener("DOMContentLoaded", function () {
     frame.appendChild(img);
   }
 
-  function animateScan(successCallback) {
-    const scanLine = document.getElementById("scanLine");
-    scanLine.style.top = "0";
-    scanLine.style.background = "#7B3FE4";
-    scanLine.style.animation = "scanOnce 1.5s linear forwards";
-    scanLine.addEventListener("animationend", () => {
-      if (successCallback) successCallback(scanLine);
-    }, { once: true });
+  // 🎵 BACKGROUND MUSIC (safe for mobile)
+  let bgAudio;
+  function initBackgroundMusic() {
+    bgAudio = new Audio("bts.mp3"); // 🔁 add your file
+    bgAudio.loop = true;
+    bgAudio.volume = 0.4;
+
+    const startMusic = () => {
+      bgAudio.play().catch(()=>{});
+      document.removeEventListener("click", startMusic);
+      document.removeEventListener("touchstart", startMusic);
+    };
+
+    document.addEventListener("click", startMusic);
+    document.addEventListener("touchstart", startMusic);
   }
 
-  function highlightSuccess(scanLine, callback) {
-    scanLine.style.transition = "background 0.5s, opacity 0.5s";
-    scanLine.style.background = "#00ff99";
-    scanLine.style.opacity = "0";
-    setTimeout(() => { if(callback) callback(); }, 600);
+  // 🔊 SCAN SOUND
+  let scanAudioCtx, scanOsc, scanGain;
+
+  function startScanSound() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      scanAudioCtx = new AudioCtx();
+      scanOsc = scanAudioCtx.createOscillator();
+      scanGain = scanAudioCtx.createGain();
+
+      scanOsc.frequency.value = 220;
+      scanGain.gain.value = 0.05;
+
+      scanOsc.connect(scanGain);
+      scanGain.connect(scanAudioCtx.destination);
+      scanOsc.start();
+    } catch(e){}
+  }
+
+  function stopScanSound() {
+    try {
+      if(scanOsc) scanOsc.stop();
+      if(scanAudioCtx) scanAudioCtx.close();
+    } catch(e){}
+  }
+
+  // 🎉 CONFETTI
+  function launchConfetti() {
+    for (let i = 0; i < 60; i++) {
+      const conf = document.createElement("div");
+      conf.style.position = "fixed";
+      conf.style.width = "6px";
+      conf.style.height = "6px";
+      conf.style.background = ["#00ff99","#7B3FE4","#ffffff","#ff4d4d"][Math.floor(Math.random()*4)];
+      conf.style.top = "50%";
+      conf.style.left = "50%";
+      conf.style.zIndex = "9999";
+
+      document.body.appendChild(conf);
+
+      const x = (Math.random() - 0.5) * 600;
+      const y = (Math.random() - 0.5) * 600;
+
+      conf.animate([
+        { transform: "translate(0,0)", opacity: 1 },
+        { transform: `translate(${x}px, ${y}px)`, opacity: 0 }
+      ], {
+        duration: 1000,
+        easing: "ease-out"
+      });
+
+      setTimeout(() => conf.remove(), 1000);
+    }
   }
 
   function showSecurityAlert() {
@@ -165,47 +94,30 @@ document.addEventListener("DOMContentLoaded", function () {
       position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
       fontSize: "26px", fontWeight: "bold", color: "#ff4d4d",
       background: "rgba(0,0,0,0.9)", padding: "20px 30px",
-      border: "2px solid #ff4d4d", borderRadius: "8px", zIndex: "9999",
-      letterSpacing: "2px", opacity: "1", transition: "opacity 0.4s ease"
+      border: "2px solid #ff4d4d", borderRadius: "8px", zIndex: "9999"
     });
     document.body.appendChild(overlay);
-
-    document.body.style.transition = "background 0.2s";
-    document.body.style.background = "#2a0000";
-    setTimeout(() => document.body.style.background = "#0B0B0F", 400);
-    setTimeout(() => overlay.style.opacity = "0", 1000);
-    setTimeout(() => overlay.remove(), 1400);
-
-    if(navigator.vibrate) navigator.vibrate([200,100,200,100,300]);
-
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if(!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = 180;
-      gain.gain.value = 0.3;
-      osc.start();
-      setTimeout(() => { osc.stop(); ctx.close(); }, 300);
-    } catch(e){}
+    setTimeout(() => overlay.remove(), 1200);
   }
 
-  function showAccessGranted() {
+  function showAccessGranted(name) {
     const overlay = document.createElement("div");
-    overlay.innerText = "ACCESS GRANTED";
+    overlay.innerText = "ACCESS GRANTED\nARMY VERIFIED 💜";
     Object.assign(overlay.style, {
       position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-      fontSize: "26px", fontWeight: "bold", color: "#00ff99",
+      fontSize: "24px", fontWeight: "bold", color: "#00ff99",
       background: "rgba(0,0,0,0.85)", padding: "20px 30px",
       border: "2px solid #00ff99", borderRadius: "8px",
-      zIndex: "9999", opacity: "1", transition: "opacity 0.5s ease"
+      zIndex: "9999", textAlign: "center"
     });
     document.body.appendChild(overlay);
-    setTimeout(() => overlay.style.opacity = "0", 700);
-    setTimeout(() => overlay.remove(), 1200);
+    setTimeout(() => overlay.remove(), 1500);
+  }
+
+  // 💥 SHAKE
+  function triggerShake() {
+    document.body.style.animation = "shake 0.4s";
+    setTimeout(() => document.body.style.animation = "", 400);
   }
 
   function updateStatus() {
@@ -219,114 +131,61 @@ document.addEventListener("DOMContentLoaded", function () {
     const validTickets = ["ARI-78291","ARI-78292"];
     const now = new Date();
 
-    const start = new Date("2026-03-21T16:15:00+05:30");
     const eventStart = new Date("2026-03-21T16:30:00+05:30");
     const eventEnd = new Date("2026-03-21T17:30:00+05:30");
 
-    const checkedTime = localStorage.getItem("time_" + ticketId);
-
     if(!validTickets.includes(ticketId)) {
       main.innerText = "INVALID TICKET";
-      main.classList.add("invalid");
       sub.innerText = "Please check your pass";
-      if(details) details.style.display = "none";
-      frame.style.animation = "shake 0.3s";
-      setTimeout(() => frame.style.animation = "", 600);
       showSecurityAlert();
       return;
     }
 
     const name = params.get("name") || "BTS ARMY";
-    const row = params.get("row") || "--";
-    const seat = params.get("seat") || "--";
-    const gate = params.get("gate") || "03";
 
-    document.getElementById("seatText").innerText = "Row: " + row + " | Seat: " + seat;
-    document.getElementById("nameText").innerText = name;
-    document.getElementById("gateText").innerText = "Gate: " + gate;
-    document.getElementById("ticketIdText").innerText = "Ticket ID: " + ticketId;
-
-    if(now < start) {
-      main.innerText = "SEE YOU AT THE SHOW";
-      sub.innerText = "Entry opens at 4:30 PM IST";
-      return;
-    }
-
-    if(now > eventEnd) {
-      main.innerText = "THANK YOU FOR JOINING\n" + name.toUpperCase();
-      sub.innerText = "We hope you enjoyed ARIRANG LIVE";
-      return;
-    }
-
-    if(now >= start && now < eventStart) {
-      main.innerText = "PREPARING ENTRY";
-      sub.innerText = "Please wait for access";
-      return;
-    }
-
-    // DURING EVENT
+    // 🎯 DURING EVENT ONLY (for demo simplicity)
     if(now >= eventStart && now <= eventEnd) {
-      if(localStorage.getItem("used_" + ticketId)) {
-        main.innerText = "ALREADY CHECKED IN";
-        main.style.color = "#00ff99";
-        sub.innerText = checkedTime ? "Checked in at " + checkedTime : "Enjoy the show 💜";
-        details.style.display = "block";
-        if(!details.innerHTML.includes("Entry Locked")) {
-          details.innerHTML += "<p style='color:#999'>Entry Locked</p>";
-        }
-        return;
-      }
 
-      // Animate scan line → pulsing → green → fade → show image
       const scanLine = document.getElementById("scanLine");
-      scanLine.style.top = "0";
+
+      scanLine.style.top = "0px";
       scanLine.style.opacity = "1";
-      scanLine.style.background = "#7B3FE4";
-      scanLine.style.boxShadow = "0 0 8px #7B3FE4, 0 0 20px #7B3FE4";
-      scanLine.style.transition = "";
 
       let pos = 0;
-      const maxHeight = frame.clientHeight;
-      const step = 2; // pixels per frame
+      const frameHeight = frame.clientHeight;
+
+      startScanSound();
+
       const interval = setInterval(() => {
-        pos += step;
+        pos += 2;
         scanLine.style.top = pos + "px";
-        scanLine.style.boxShadow = `0 0 8px #7B3FE4, 0 0 20px #7B3FE4`;
+        scanLine.style.opacity = 0.7 + 0.3 * Math.sin(pos / 6);
 
-        // Pulsing effect
-        scanLine.style.opacity = 0.7 + 0.3 * Math.sin(pos/5);
-
-        if(pos >= maxHeight) {
+        if(pos >= frameHeight) {
           clearInterval(interval);
-
-          // Turn green and fade
-          scanLine.style.background = "#00ff99";
-          scanLine.style.boxShadow = "0 0 20px #00ff99, 0 0 40px #00ff99";
-          scanLine.style.transition = "opacity 0.5s ease, background 0.5s ease";
-          scanLine.style.opacity = "0";
+          stopScanSound();
 
           setTimeout(() => {
-            // Show cover image
             showImage(frame);
 
-            // Confirm entry
-            const timeString = formatTime(now);
-            localStorage.setItem("used_" + ticketId, "true");
-            localStorage.setItem("time_" + ticketId, timeString);
             main.innerText = "ENTRY CONFIRMED";
-            sub.innerText = "Checked in at " + timeString;
+            sub.innerText = "Welcome " + name;
+
             frame.classList.add("success-pulse");
-            showAccessGranted();
+
+            triggerShake();
+            showAccessGranted(name);
+            launchConfetti();
+
             details.style.display = "block";
-          }, 500);
+          }, 400);
         }
-      }, 15); // smaller interval = smoother
+
+      }, 16);
     }
   }
 
+  initBackgroundMusic(); // 🎵 init music
   setTimeout(updateStatus, 500);
 });
 </script>
-
-</body>
-</html>
