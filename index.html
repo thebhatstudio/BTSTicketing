@@ -38,6 +38,7 @@
       font-size: 24px;
       font-weight: bold;
       margin-top: 20px;
+      white-space: pre-line;
     }
 
     .status-sub {
@@ -155,16 +156,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setTimeout(() => {
       document.body.style.background = "#0B0B0F";
-    }, 200);
+    }, 400);
 
     // remove overlay
     setTimeout(() => {
       overlay.style.opacity = "0";
-    }, 600);
+    }, 1000);
 
     setTimeout(() => {
       overlay.remove();
-    }, 1000);
+    }, 1400);
 
     // vibration (mobile)
     if (navigator.vibrate) {
@@ -234,7 +235,7 @@ document.addEventListener("DOMContentLoaded", function () {
       
       setTimeout(() => {
           if (frame) frame.style.animation = "";
-      }, 400);
+      }, 600);
       
       // vibrates and laets system
       showSecurityAlert();
@@ -265,8 +266,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // AFTER EVENT
     if (now > eventEnd) {
-      main.innerText = "THANK YOU FOR JOINING";
+    consta name = params.get("name") || "BTS ARMY";
+    
+      main.innerText = "THANK YOU FOR JOINING\n" + name.toUpperCase();
       sub.innerText = "We hope you enjoyed ARIRANG LIVE";
+      
       return;
     }
 
