@@ -131,14 +131,32 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function showImage(frame) {
+    if (!frame) return;
+
+    // 🔥 FULL RESET (this is the key fix)
+    while (frame.firstChild) {
+      frame.removeChild(frame.firstChild);
+    }
+
+    // force repaint (important for Safari/iPhone)
+    frame.offsetHeight;
+
     const img = document.createElement("img");
     img.src = "cover.png";
-    img.style.width = "100%";
-    img.style.height = "100%";
-    img.style.objectFit = "cover";
-    frame.innerHTML = "";
+
+    img.onload = () => {
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "cover";
+    };
+
+    img.onerror = () => {
+      frame.innerHTML = "<div style='display:flex;align-items:center;justify-content:center;height:100%;color:#7B3FE4'>BTS ARIRANG</div>";
+    };
+
     frame.appendChild(img);
   }
+
 
   function launchConfetti() {
     for (let i = 0; i < 40; i++) {
@@ -283,6 +301,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (now > eventEnd) {
       main.innerText = "THANK YOU FOR JOINING\n" + name.toUpperCase();
       sub.innerText = "We hope you enjoyed ARIRANG LIVE";
+      document.getElementById("scanLine")?.remove();
       showImage(frame);
       return;
     }
