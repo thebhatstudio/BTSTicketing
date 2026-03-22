@@ -1,3 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTS | ARIRANG LIVE</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: #0B0B0F;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 380px;
+    }
+
+    .header {
+      font-size: 20px;
+      letter-spacing: 3px;
+      margin-bottom: 10px;
+    }
+
+    .line {
+      height: 2px;
+      background: #7B3FE4;
+      margin: 15px 0;
+    }
+
+    .status-main {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 20px;
+      white-space: pre-line;
+    }
+
+    .status-sub {
+      font-size: 14px;
+      color: #bbb;
+    }
+
+    .scan-frame {
+      width: 100%;
+      max-width: 260px;
+      aspect-ratio: 1 / 1;
+      margin: 20px auto;
+      border: 1px solid rgba(255,255,255,0.1);
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 10px rgba(123,63,228,0.3);
+    }
+
+    .scan-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: #7B3FE4;
+      top: 0;
+    }
+
+    @keyframes scanOnce {
+      0% { top: 0; }
+      100% { top: 100%; }
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    @keyframes successPulse {
+      0% { box-shadow: 0 0 0 rgba(0,255,153,0); }
+      50% { box-shadow: 0 0 30px rgba(0,255,153,0.9); }
+      100% { box-shadow: 0 0 0 rgba(0,255,153,0); }
+    }
+
+    .success-pulse {
+      animation: successPulse 0.8s ease-out;
+      border-color: #00ff99 !important;
+    }
+
+    .details {
+      display: none;
+      margin-top: 15px;
+    }
+
+    .invalid {
+      color: #ff4d4d;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="header">BTS | ARIRANG LIVE</div>
+  <div class="line"></div>
+
+  <div class="scan-frame" id="frame">
+    <div class="scan-line" id="scanLine"></div>
+  </div>
+
+  <div id="mainText" class="status-main">CONFIRMING TICKET...</div>
+  <div id="subText" class="status-sub">Please wait while we verify</div>
+
+  <div id="details" class="details">
+    <div class="line"></div>
+    <p id="gateText">Gate: --</p>
+    <p id="seatText">Row: -- | Seat: --</p>
+    <p id="ticketIdText"></p>
+    <div class="line"></div>
+    <p id="nameText">Guest</p>
+  </div>
+
+</div>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -15,18 +140,8 @@ document.addEventListener("DOMContentLoaded", function () {
     frame.appendChild(img);
   }
 
-  // 🎵 Background music (mobile safe)
-  let bgMusic = new Audio("bts.mp3");
-  bgMusic.loop = true;
-  bgMusic.volume = 0.4;
-
-  document.addEventListener("click", () => {
-    bgMusic.play().catch(()=>{});
-  }, { once: true });
-
-  // 🎉 Confetti
   function launchConfetti() {
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 40; i++) {
       const conf = document.createElement("div");
       conf.style.position = "fixed";
       conf.style.width = "6px";
@@ -50,34 +165,74 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  function showSecurityAlert() {
-    const overlay = document.createElement("div");
-    overlay.innerText = "SECURITY ALERT";
-    Object.assign(overlay.style, {
-      position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-      fontSize: "26px", fontWeight: "bold", color: "#ff4d4d",
-      background: "rgba(0,0,0,0.9)", padding: "20px 30px",
-      border: "2px solid #ff4d4d", borderRadius: "8px", zIndex: "9999"
-    });
-    document.body.appendChild(overlay);
-    setTimeout(() => overlay.remove(), 1200);
+  function animateScan(callback) {
+    const scanLine = document.getElementById("scanLine");
+
+    scanLine.style.top = "0";
+    scanLine.style.animation = "scanOnce 1.5s linear forwards";
+
+    scanLine.addEventListener("animationend", () => {
+      if (callback) callback(scanLine);
+    }, { once: true });
+  }
+
+  function highlightSuccess(scanLine, callback) {
+    scanLine.style.transition = "background 0.5s, opacity 0.5s";
+    scanLine.style.background = "#00ff99";
+    scanLine.style.opacity = "0";
+
+    setTimeout(() => callback && callback(), 500);
   }
 
   function showAccessGranted() {
     const overlay = document.createElement("div");
     overlay.innerText = "ACCESS GRANTED\nARMY VERIFIED 💜";
+
     Object.assign(overlay.style, {
-      position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-      fontSize: "24px", fontWeight: "bold", color: "#00ff99",
-      background: "rgba(0,0,0,0.85)", padding: "20px 30px",
-      border: "2px solid #00ff99", borderRadius: "8px",
-      zIndex: "9999", textAlign: "center"
+      position: "fixed",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      fontSize: "24px",
+      fontWeight: "bold",
+      color: "#00ff99",
+      background: "rgba(0,0,0,0.85)",
+      padding: "20px 30px",
+      border: "2px solid #00ff99",
+      borderRadius: "8px",
+      zIndex: "9999",
+      textAlign: "center"
     });
+
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 1200);
+  }
+
+  function showSecurityAlert() {
+    const overlay = document.createElement("div");
+    overlay.innerText = "SECURITY ALERT";
+
+    Object.assign(overlay.style, {
+      position: "fixed",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      fontSize: "26px",
+      fontWeight: "bold",
+      color: "#ff4d4d",
+      background: "rgba(0,0,0,0.9)",
+      padding: "20px 30px",
+      border: "2px solid #ff4d4d",
+      borderRadius: "8px",
+      zIndex: "9999"
+    });
+
     document.body.appendChild(overlay);
     setTimeout(() => overlay.remove(), 1200);
   }
 
   function updateStatus() {
+
     const main = document.getElementById("mainText");
     const sub = document.getElementById("subText");
     const details = document.getElementById("details");
@@ -85,6 +240,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const params = new URLSearchParams(window.location.search);
     const ticketId = params.get("id") || "UNKNOWN";
+
     const validTickets = ["ARI-78291","ARI-78292"];
     const now = new Date();
 
@@ -92,12 +248,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const eventStart = new Date("2026-03-21T16:30:00+05:30");
     const eventEnd = new Date("2026-03-21T17:30:00+05:30");
 
-    const checkedTime = localStorage.getItem("time_" + ticketId);
+    const usedKey = "used_" + ticketId;
+    const timeKey = "time_" + ticketId;
+    const checkedTime = localStorage.getItem(timeKey);
 
-    if(!validTickets.includes(ticketId)) {
+    if (!validTickets.includes(ticketId)) {
       main.innerText = "INVALID TICKET";
       main.classList.add("invalid");
       sub.innerText = "Please check your pass";
+
+      frame.style.animation = "shake 0.3s";
+      setTimeout(() => frame.style.animation = "", 600);
+
       showSecurityAlert();
       return;
     }
@@ -112,32 +274,28 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("gateText").innerText = "Gate: " + gate;
     document.getElementById("ticketIdText").innerText = "Ticket ID: " + ticketId;
 
-    if(now < start) {
+    if (now < start) {
       main.innerText = "SEE YOU AT THE SHOW";
       sub.innerText = "Entry opens at 4:30 PM IST";
       return;
     }
 
-    // ✅ FIXED BLOCK (shows cover image after event)
-    if(now > eventEnd) {
+    if (now > eventEnd) {
       main.innerText = "THANK YOU FOR JOINING\n" + name.toUpperCase();
       sub.innerText = "We hope you enjoyed ARIRANG LIVE";
-
-      showImage(frame); // ✅ THIS FIXES YOUR ISSUE
-
+      showImage(frame);
       return;
     }
 
-    if(now >= start && now < eventStart) {
+    if (now >= start && now < eventStart) {
       main.innerText = "PREPARING ENTRY";
       sub.innerText = "Please wait for access";
       return;
     }
 
-    // 🎯 DURING EVENT
-    if(now >= eventStart && now <= eventEnd) {
+    if (now >= eventStart && now <= eventEnd) {
 
-      if(localStorage.getItem("used_" + ticketId)) {
+      if (localStorage.getItem(usedKey)) {
         main.innerText = "ALREADY CHECKED IN";
         main.style.color = "#00ff99";
         sub.innerText = checkedTime ? "Checked in at " + checkedTime : "Enjoy the show 💜";
@@ -145,64 +303,35 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      const scanLine = document.getElementById("scanLine");
+      animateScan((scanLine) => {
+        highlightSuccess(scanLine, () => {
 
-      // 🔊 scan sound
-      let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      let osc = audioCtx.createOscillator();
-      let gain = audioCtx.createGain();
+          showImage(frame);
 
-      osc.frequency.value = 220;
-      gain.gain.value = 0.05;
+          const timeString = formatTime(now);
+          localStorage.setItem(usedKey, "true");
+          localStorage.setItem(timeKey, timeString);
 
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
+          main.innerText = "ENTRY CONFIRMED\nARMY VERIFIED 💜";
+          sub.innerText = "Checked in at " + timeString;
 
-      let pos = 0;
-      const maxHeight = frame.clientHeight;
+          frame.classList.add("success-pulse");
 
-      const interval = setInterval(() => {
-        pos += 2;
-        scanLine.style.top = pos + "px";
-        scanLine.style.opacity = 0.7 + 0.3 * Math.sin(pos/5);
+          document.body.style.animation = "shake 0.4s";
+          setTimeout(() => document.body.style.animation = "", 400);
 
-        if(pos >= maxHeight) {
-          clearInterval(interval);
+          showAccessGranted();
+          launchConfetti();
 
-          osc.stop();
-          audioCtx.close();
-
-          scanLine.style.background = "#00ff99";
-          scanLine.style.opacity = "0";
-
-          setTimeout(() => {
-            showImage(frame);
-
-            const timeString = formatTime(now);
-            localStorage.setItem("used_" + ticketId, "true");
-            localStorage.setItem("time_" + ticketId, timeString);
-
-            main.innerText = "ENTRY CONFIRMED\nARMY VERIFIED 💜";
-            sub.innerText = "Checked in at " + timeString;
-
-            frame.classList.add("success-pulse");
-
-            // 💥 shake
-            document.body.style.animation = "shake 0.4s";
-            setTimeout(() => document.body.style.animation = "", 400);
-
-            showAccessGranted();
-            launchConfetti();
-
-            details.style.display = "block";
-          }, 500);
-        }
-
-      }, 16);
+          details.style.display = "block";
+        });
+      });
     }
   }
 
   setTimeout(updateStatus, 500);
 });
 </script>
+
+</body>
+</html>
