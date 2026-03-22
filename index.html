@@ -62,15 +62,20 @@
       width: 100%;
       height: 2px;
       background: #7B3FE4;
+      top: 0;
     }
 
-    @keyframes scanOnce {
-      0% { top: 0; }
-      100% { top: 100%; }
+    .details {
+      display: none;
+      margin-top: 15px;
+    }
+
+    .invalid {
+      color: #ff4d4d;
     }
 
     @keyframes shake {
-      0%, 100% { transform: translateX(0); }
+      0%,100% { transform: translateX(0); }
       25% { transform: translateX(-5px); }
       75% { transform: translateX(5px); }
     }
@@ -86,18 +91,8 @@
       border-color: #00ff99 !important;
     }
 
-    .details {
-      display: none;
-      margin-top: 15px;
-    }
-
-    .invalid {
-      color: #ff4d4d;
-    }
-
   </style>
 </head>
-
 <body>
 
 <div class="container">
@@ -126,6 +121,7 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
+  // Format current time for display
   function formatTime(date) {
     return date.toLocaleTimeString("en-IN", {
       hour: "numeric",
@@ -134,42 +130,49 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  function showImage(frame) {
-    const img = document.createElement("img");
-    img.src = "cover.png";
-    img.style.width = "100%";
-    img.style.height = "100%";
-    img.style.objectFit = "cover";
-    frame.innerHTML = "";
-    frame.appendChild(img);
+  // Animate scan line: top -> bottom, then green fade, then show image
+  function animateScanLine(successCallback) {
+    const frame = document.getElementById("frame");
+    const line = document.getElementById("scanLine");
+
+    // Reset line
+    line.style.top = "0px";
+    line.style.opacity = "1";
+    line.style.background = "#7B3FE4";
+
+    let pos = 0;
+    const step = 2; // pixels per frame
+    const interval = setInterval(() => {
+      pos += step;
+      line.style.top = pos + "px";
+      if (pos >= frame.clientHeight) {
+        clearInterval(interval);
+
+        // Turn green and fade
+        line.style.background = "#00ff99";
+        line.style.transition = "opacity 0.5s";
+        line.style.opacity = "0";
+
+        setTimeout(() => {
+          // Show cover image
+          const img = document.createElement("img");
+          img.src = "cover.png";
+          img.style.width = "100%";
+          img.style.height = "100%";
+          img.style.objectFit = "cover";
+          frame.innerHTML = "";
+          frame.appendChild(img);
+
+          if (successCallback) successCallback();
+        }, 500);
+      }
+    }, 10); // every 10ms
   }
 
-  function animateScan(successCallback) {
-    const scanLine = document.getElementById("scanLine");
-    scanLine.style.top = "0";
-    scanLine.style.background = "#7B3FE4";
-    scanLine.style.animation = "scanOnce 1.5s linear forwards";
-
-    scanLine.addEventListener("animationend", () => {
-      if (successCallback) successCallback(scanLine);
-    }, { once: true });
-  }
-
-  function highlightSuccess(scanLine, callback) {
-    // Turn green and fade
-    scanLine.style.transition = "background 0.5s, opacity 0.5s";
-    scanLine.style.background = "#00ff99";
-    scanLine.style.opacity = "0";
-
-    setTimeout(() => {
-      if (callback) callback();
-    }, 600);
-  }
-
+  // Security alert for invalid tickets
   function showSecurityAlert() {
     const overlay = document.createElement("div");
     overlay.innerText = "SECURITY ALERT";
-
     Object.assign(overlay.style, {
       position: "fixed",
       top: "50%",
@@ -187,12 +190,10 @@ document.addEventListener("DOMContentLoaded", function () {
       opacity: "1",
       transition: "opacity 0.4s ease"
     });
-
     document.body.appendChild(overlay);
 
     document.body.style.transition = "background 0.2s";
     document.body.style.background = "#2a0000";
-
     setTimeout(() => document.body.style.background = "#0B0B0F", 400);
     setTimeout(() => overlay.style.opacity = "0", 1000);
     setTimeout(() => overlay.remove(), 1400);
@@ -211,13 +212,13 @@ document.addEventListener("DOMContentLoaded", function () {
       gain.gain.value = 0.3;
       osc.start();
       setTimeout(() => { osc.stop(); ctx.close(); }, 300);
-    } catch (e) {}
+    } catch(e){}
   }
 
+  // Access granted overlay
   function showAccessGranted() {
     const overlay = document.createElement("div");
     overlay.innerText = "ACCESS GRANTED";
-
     Object.assign(overlay.style, {
       position: "fixed",
       top: "50%",
@@ -234,15 +235,12 @@ document.addEventListener("DOMContentLoaded", function () {
       opacity: "1",
       transition: "opacity 0.5s ease"
     });
-
     document.body.appendChild(overlay);
-
     setTimeout(() => overlay.style.opacity = "0", 700);
     setTimeout(() => overlay.remove(), 1200);
   }
 
   function updateStatus() {
-
     const main = document.getElementById("mainText");
     const sub = document.getElementById("subText");
     const details = document.getElementById("details");
@@ -250,10 +248,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const params = new URLSearchParams(window.location.search);
     const ticketId = params.get("id") || "UNKNOWN";
-
     const validTickets = ["ARI-78291","ARI-78292"];
-
     const now = new Date();
+
     const start = new Date("2026-03-21T16:15:00+05:30");
     const eventStart = new Date("2026-03-21T16:30:00+05:30");
     const eventEnd = new Date("2026-03-21T17:30:00+05:30");
@@ -261,7 +258,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const usedKey = "used_" + ticketId;
     const checkedTime = localStorage.getItem("time_" + ticketId);
 
-    // ❌ INVALID
+    // INVALID ticket
     if (!validTickets.includes(ticketId)) {
       main.innerText = "INVALID TICKET";
       main.classList.add("invalid");
@@ -273,12 +270,12 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    document.getElementById("ticketIdText").innerText = "Ticket ID: " + ticketId;
     const name = params.get("name") || "BTS ARMY";
     const row = params.get("row") || "--";
     const seat = params.get("seat") || "--";
     const gate = params.get("gate") || "03";
 
+    document.getElementById("ticketIdText").innerText = "Ticket ID: " + ticketId;
     document.getElementById("seatText").innerText = "Row: " + row + " | Seat: " + seat;
     document.getElementById("nameText").innerText = name;
     document.getElementById("gateText").innerText = "Gate: " + gate;
@@ -306,8 +303,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // DURING EVENT
     if (now >= eventStart && now <= eventEnd) {
-
-      if (localStorage.getItem("used_" + ticketId)) {
+      if (localStorage.getItem(usedKey)) {
         main.innerText = "ALREADY CHECKED IN";
         main.style.color = "#00ff99";
         sub.innerText = checkedTime ? "Checked in at " + checkedTime : "Enjoy the show 💜";
@@ -318,21 +314,17 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      // Animate scan line → green → fade → show image
-      animateScan((scanLine) => {
-        highlightSuccess(scanLine, () => {
-          showImage(frame);
+      // Animate scan line → green → fade → image → success
+      animateScanLine(() => {
+        const timeString = formatTime(now);
+        localStorage.setItem(usedKey, "true");
+        localStorage.setItem("time_" + ticketId, timeString);
 
-          const timeString = formatTime(now);
-          localStorage.setItem("used_" + ticketId, "true");
-          localStorage.setItem("time_" + ticketId, timeString);
-
-          main.innerText = "ENTRY CONFIRMED";
-          sub.innerText = "Checked in at " + timeString;
-          frame.classList.add("success-pulse");
-          showAccessGranted();
-          details.style.display = "block";
-        });
+        main.innerText = "ENTRY CONFIRMED";
+        sub.innerText = "Checked in at " + timeString;
+        frame.classList.add("success-pulse");
+        showAccessGranted();
+        details.style.display = "block";
       });
     }
   }
