@@ -277,20 +277,50 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      // Animate scan line → green → fade → show image → confirm entry
-      animateScan(scanLine => {
-        highlightSuccess(scanLine, () => {
-          showImage(frame);
-          const timeString = formatTime(now);
-          localStorage.setItem("used_" + ticketId, "true");
-          localStorage.setItem("time_" + ticketId, timeString);
-          main.innerText = "ENTRY CONFIRMED";
-          sub.innerText = "Checked in at " + timeString;
-          frame.classList.add("success-pulse");
-          showAccessGranted();
-          details.style.display = "block";
-        });
-      });
+      // Animate scan line → pulsing → green → fade → show image
+      const scanLine = document.getElementById("scanLine");
+      scanLine.style.top = "0";
+      scanLine.style.opacity = "1";
+      scanLine.style.background = "#7B3FE4";
+      scanLine.style.boxShadow = "0 0 8px #7B3FE4, 0 0 20px #7B3FE4";
+      scanLine.style.transition = "";
+
+      let pos = 0;
+      const maxHeight = frame.clientHeight;
+      const step = 2; // pixels per frame
+      const interval = setInterval(() => {
+        pos += step;
+        scanLine.style.top = pos + "px";
+        scanLine.style.boxShadow = `0 0 8px #7B3FE4, 0 0 20px #7B3FE4`;
+
+        // Pulsing effect
+        scanLine.style.opacity = 0.7 + 0.3 * Math.sin(pos/5);
+
+        if(pos >= maxHeight) {
+          clearInterval(interval);
+
+          // Turn green and fade
+          scanLine.style.background = "#00ff99";
+          scanLine.style.boxShadow = "0 0 20px #00ff99, 0 0 40px #00ff99";
+          scanLine.style.transition = "opacity 0.5s ease, background 0.5s ease";
+          scanLine.style.opacity = "0";
+
+          setTimeout(() => {
+            // Show cover image
+            showImage(frame);
+
+            // Confirm entry
+            const timeString = formatTime(now);
+            localStorage.setItem("used_" + ticketId, "true");
+            localStorage.setItem("time_" + ticketId, timeString);
+            main.innerText = "ENTRY CONFIRMED";
+            sub.innerText = "Checked in at " + timeString;
+            frame.classList.add("success-pulse");
+            showAccessGranted();
+            details.style.display = "block";
+          }, 500);
+        }
+      }, 15); // smaller interval = smoother
     }
   }
 
